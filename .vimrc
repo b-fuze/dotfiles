@@ -4,8 +4,31 @@
 " --enable-rubyinterp --prefix=/usr --enable-ruby
 " Get latest from: http://github.com/lucasoman/Conf/raw/master/.vimrc
 
+" Restrict C to clangd
+let b:ale_linters = {'c': ['clangd'], 'javascript': ['tsserver']}
+let g:ale_sign_column_always = 1
+
 " load pathogen
-call pathogen#infect()
+execute pathogen#infect()
+
+" Disable ALE completion
+let g:ale_completion_enabled = 0
+" ...with deoplete
+let g:deoplete#enable_at_startup = 1
+" let g:deoplete#sources = {'_': ['ale']}
+call deoplete#custom#source('ale', 'rank', 999)
+" Don't deoplete so quick
+let g:deoplete#auto_complete_delay = 100
+
+" Larger cmdheight for echodoc
+set cmdheight=2
+
+" Use tab for deoplete
+inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
+inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
+
+" Set clangd manually
+let g:ale_c_clangd_executable = '/usr/lib/llvm-6.0/bin/clangd'
 
 "set t_Co=256
 
@@ -482,6 +505,27 @@ endfunction
 
 " b-fuze customizations
 set nowrap
+let g:markdown_fenced_languages = ['python', 'javascript', 'sh']
+
+" Copy buffer to clipboard
+nmap C "+yae``
+
+" Surround with string prompt
+let g:surround_{char2nr('m')} = "\1Surround: \1\r\1\1"
+
+" Remove bg in gutter (mainly for ALE)
+highlight clear SignColumn
+
+" Change ALE colors 
+highlight ALEErrorSign ctermbg=NONE cterm=bold ctermfg=Red
+
+" Allow tab to switch between ex-mode completions
+set wildmode=longest,list,full
+set wildmenu
+
+" Set terminal title bar to file
+set titlestring=%t%(\ %M%)%(\ %a%)\ -\ VIM
+" autocmd BufEnter * let &titlestring = hostname() . "[vim(" . expand("%:t") . ")]"
 
 " Easymotion config from GH
 let g:EasyMotion_do_mapping = 0 " Disable default mappings
