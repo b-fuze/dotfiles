@@ -4,28 +4,50 @@
 " --enable-rubyinterp --prefix=/usr --enable-ruby
 " Get latest from: http://github.com/lucasoman/Conf/raw/master/.vimrc
 
+" Link to Java LSP
+let g:ale_java_javalsp_executable = '/media/b-fuse/22fb982d-3d59-4389-817d-a482aef0ec5a/home/b-fuse/Projects/git/java-language-server/dist/mac/bin/launcher'
+
 " Restrict C to clangd
-let b:ale_linters = {'c': ['clangd'], 'javascript': ['tsserver']}
+let b:ale_linters = {'c': ['ccls'], 'cpp': ['ccls'], 'javascript': ['tsserver'], 'java': ['javalsp'], 'rust': ['rls']}
 let g:ale_sign_column_always = 1
+
+let g:ale_cursor_detail = 1
+let g:ale_close_preview_on_insert = 1
+let g:ale_echo_cursor = 0
+let g:ale_lint_delay = 500
+let g:ale_set_balloons = 1
+set balloondelay=250
+
+" ALE Config options
+
+" Disable ALE completion
+let g:ale_completion_enabled = 0
+
 
 " load pathogen
 execute pathogen#infect()
 
-" Disable ALE completion
-let g:ale_completion_enabled = 0
-" ...with deoplete
+
+" ALE... with deoplete
 let g:deoplete#enable_at_startup = 1
 " let g:deoplete#sources = {'_': ['ale']}
-call deoplete#custom#source('ale', 'rank', 999)
+" call deoplete#custom#source('ale', 'rank', 999)
 " Don't deoplete so quick
 let g:deoplete#auto_complete_delay = 100
+
+" Close Deoplete tip window when a selection is
+" made on movement in insert mode or when leaving
+" insert mode
+autocmd CursorMovedI * if pumvisible() == 0|pclose|endif
+autocmd InsertLeave * if pumvisible() == 0|pclose|endif
+autocmd BufWritePost * pclose
 
 " Larger cmdheight for echodoc
 set cmdheight=2
 
 " Use tab for deoplete
-inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
-inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
+" inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
+" inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
 
 " Set clangd manually
 let g:ale_c_clangd_executable = '/usr/lib/llvm-6.0/bin/clangd'
@@ -505,10 +527,115 @@ endfunction
 
 " b-fuze customizations
 set nowrap
-let g:markdown_fenced_languages = ['python', 'javascript', 'sh']
+let g:markdown_fenced_languages = ['python', 'javascript', 'sh', 'json', 'yaml']
+
+" Wrap without breaking words
+set linebreak
+
+" Set dark bg for popup
+highlight Pmenu ctermfg=15 ctermbg=DarkGray guibg=DarkGray
+
+" Vim GitGutter
+highlight GitGutterAdd    guifg=#009900 ctermfg=2
+highlight GitGutterChange guifg=#bbbb00 ctermfg=3
+highlight GitGutterDelete guifg=#ff2222 ctermfg=1
+
+let g:gitgutter_sign_added              = '┃'
+let g:gitgutter_sign_modified           = '┃'
+let g:gitgutter_sign_removed            = '┃'
+let g:gitgutter_sign_removed_first_line = '┃'
+let g:gitgutter_sign_modified_removed   = '┃'
+
+au BufWrite * :GitGutter
+
+" COC.NVIM
+
+" if hidden is not set, TextEdit might fail.
+set hidden
+
+" don't give |ins-completion-menu| messages.
+set shortmess+=c
+
+" You will have bad experience for diagnostic messages when it's default 4000.
+set updatetime=300
+
+" always show signcolumns
+set signcolumn=yes
+
+autocmd FileType html let b:coc_additional_keywords = ["-"]
+autocmd FileType xml let b:coc_additional_keywords = ["-"]
+autocmd FileType yaml let b:coc_additional_keywords = ["-"]
+autocmd FileType css let b:coc_additional_keywords = ["-"]
+autocmd FileType scss let b:coc_additional_keywords = ["-"]
+autocmd FileType sh let b:coc_additional_keywords = ["-"]
+
+" Use tab for trigger completion with characters ahead and navigate.
+" Use command ':verbose imap <tab>' to make sure tab is not mapped by other plugin.
+inoremap <silent><expr> <TAB>
+      \ pumvisible() ? "\<C-n>" :
+      \ <SID>check_back_space() ? "\<TAB>" :
+      \ coc#refresh()
+inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
+
+function! s:check_back_space() abort
+  let col = col('.') - 1
+  return !col || getline('.')[col - 1]  =~# '\s'
+endfunction
+
+" Remap for rename current word
+nmap <leader>rn <Plug>(coc-rename)
+
+" Use `:Format` to format current buffer
+command! -nargs=0 Format :call CocAction('format')
+
+" /COC.NVIM
+
+" Enable mouse support
+set mouse=a
+set ttymouse=xterm2
+
+" Multi-cursor mouse
+let g:VM_mouse_mappings = 1
+
+" Quick comment
+vmap <c-_> gc
+nmap <c-_> gc$
+imap <c-_> <c-o>gc$
+
+" Quick jump to definition
+nmap <C-Right> :ALEGoToDefinitionInSplit<CR>
+
+" Quick find all references
+nmap <C-Left> :ALEFindReferences<CR>
+
+" Quick show all tags
+nmap <F8> :TagbarToggle<CR>
 
 " Copy buffer to clipboard
-nmap C "+yae``
+fun FuzeCopyToSystemClipboard()
+  let l:win_pos = winsaveview()
+
+  normal "+yae
+
+  " Reset view after yanking the view
+  call winrestview(l:win_pos)
+endfun
+
+" nmap C "+yae``
+nmap C :call FuzeCopyToSystemClipboard()<CR>
+
+" Fuzzy file open
+nmap <c-p> :CommandT<CR>
+nmap <c-b> :CommandTBuffer<CR>
+let g:CommandTWildIgnore=&wildignore . ",*/node_modules,*/vendor"
+autocmd BufEnter * command! -nargs=+ CommandTOpen :call GotoOrOpenVsplit(<q-args>)
+
+function! GotoOrOpenVsplit(command_and_args) abort
+  let l:command_and_args = split(a:command_and_args, '\v^\w+ \zs')
+  let l:file = l:command_and_args[1]
+
+  call commandt#GotoOrOpen("vsplit " . l:file)
+endfunction
 
 " Surround with string prompt
 let g:surround_{char2nr('m')} = "\1Surround: \1\r\1\1"
@@ -519,13 +646,39 @@ highlight clear SignColumn
 " Change ALE colors 
 highlight ALEErrorSign ctermbg=NONE cterm=bold ctermfg=Red
 
+let g:tagbar_type_typescript = {
+  \ 'ctagsbin' : 'tstags',
+  \ 'ctagsargs' : '-f-',
+  \ 'kinds' : [
+    \ 'e:enums:0:1',
+    \ 'f:function:0:1',
+    \ 't:typealias:0:1',
+    \ 'M:Module:0:1',
+    \ 'I:import:0:1',
+    \ 'i:interface:0:1',
+    \ 'C:class:0:1',
+    \ 'm:method:0:1',
+    \ 'p:property:0:1',
+    \ 'v:variable:0:1',
+    \ 'c:const:0:1',
+  \ ],
+  \ 'sort' : 0
+\ }
+
 " Allow tab to switch between ex-mode completions
 set wildmode=longest,list,full
 set wildmenu
+set sidescroll=1
 
 " Set terminal title bar to file
 set titlestring=%t%(\ %M%)%(\ %a%)\ -\ VIM
 " autocmd BufEnter * let &titlestring = hostname() . "[vim(" . expand("%:t") . ")]"
+
+" Yank to system clipboard
+vmap <c-p> "+y
+
+" Preview windows should be at the bottom
+set splitbelow
 
 " Easymotion config from GH
 let g:EasyMotion_do_mapping = 0 " Disable default mappings
